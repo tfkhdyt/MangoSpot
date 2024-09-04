@@ -6,7 +6,10 @@ COPY . .
 
 RUN a2enmod rewrite
 
-ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+RUN curl -sSLf \
+	-o /usr/local/bin/install-php-extensions \
+	https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions && \
+	chmod +x /usr/local/bin/install-php-extensions
 
 RUN apt update && apt install -y libmcrypt-dev libssh2-1-dev libzip-dev libpng-dev libxslt-dev
 RUN install-php-extensions gd xsl
