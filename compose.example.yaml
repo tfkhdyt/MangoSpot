@@ -1,0 +1,14 @@
+version: "2"
+
+services:
+  mangospot:
+    build: .
+    ports:
+      - 8080:8080
+    volumes:
+      - ./httpd.conf:/opt/bitnami/apache/conf/httpd.conf
+    environment:
+      DB_HOST: "localhost"
+      DB_USER: radius
+      DB_PASSWORD: "radius"
+      DB_DATABASE: radius
