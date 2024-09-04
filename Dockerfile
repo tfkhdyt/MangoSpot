@@ -18,3 +18,6 @@ RUN pecl install mcrypt-1.0.7 ssh2-1.4.1 zip-1.22.3
 
 RUN docker-php-ext-install pdo pdo_mysql gd xsl
 RUN docker-php-ext-enable mcrypt ssh2 zip
+
+RUN mv /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini
+RUN sed -i 's/error_reporting = E_ALL & ~E_DEPRECATED & ~E_STRICT/error_reporting = E_ALL ^ E_DEPRECATED/g' /usr/local/etc/php/php.ini
