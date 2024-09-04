@@ -15,7 +15,8 @@
 
 namespace claviska;
 
-class SimpleImage {
+class SimpleImage
+{
 
   const
     ERR_FILE_NOT_FOUND = 1,
@@ -41,9 +42,10 @@ class SimpleImage {
   //
   //  $image (string) - An image file or a data URI to load.
   //
-  public function __construct($image = null) {
+  public function __construct($image = null)
+  {
     // Check for the required GD extension
-    if(extension_loaded('gd')) {
+    if (extension_loaded('gd')) {
       // Ignore JPEG warnings that cause imagecreatefromjpeg() to fail
       ini_set('gd.jpeg_ignore_warning', 1);
     } else {
@@ -51,9 +53,9 @@ class SimpleImage {
     }
 
     // Load an image through the constructor
-    if(preg_match('/^data:(.*?);/', $image)) {
+    if (!is_null($image) && preg_match('/^data:(.*?);/', $image)) {
       $this->fromDataUri($image);
-    } elseif($image) {
+    } elseif (!is_null($image)) {
       $this->fromFile($image);
     }
   }
@@ -61,8 +63,9 @@ class SimpleImage {
   //
   // Destroys the image resource
   //
-  public function __destruct() {
-    if($this->image !== null && get_resource_type($this->image) === 'gd') {
+  public function __destruct()
+  {
+    if ($this->image !== null && get_resource_type($this->image) === 'gd') {
       imagedestroy($this->image);
     }
   }
@@ -78,16 +81,17 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function fromDataUri($uri) {
+  public function fromDataUri($uri)
+  {
     // Basic formatting check
     preg_match('/^data:(.*?);/', $uri, $matches);
-    if(!count($matches)) {
+    if (!count($matches)) {
       throw new \Exception('Invalid data URI.', self::ERR_INVALID_DATA_URI);
     }
 
     // Determine mime type
     $this->mimeType = $matches[1];
-    if(!preg_match('/^image\/(gif|jpeg|png)$/', $this->mimeType)) {
+    if (!preg_match('/^image\/(gif|jpeg|png)$/', $this->mimeType)) {
       throw new \Exception(
         'Unsupported format: ' . $this->mimeType,
         self::ERR_UNSUPPORTED_FORMAT
@@ -97,7 +101,7 @@ class SimpleImage {
     // Get image data
     $uri = base64_decode(preg_replace('/^data:(.*?);base64,/', '', $uri));
     $this->image = imagecreatefromstring($uri);
-    if(!$this->image) {
+    if (!$this->image) {
       throw new \Exception("Invalid image data.", self::ERR_INVALID_IMAGE);
     }
 
@@ -111,56 +115,57 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function fromFile($file) {
+  public function fromFile($file)
+  {
     // Check if the file exists and is readable. We're using fopen() instead of file_exists()
     // because not all URL wrappers support the latter.
     $handle = @fopen($file, 'r');
-    if($handle === false) {
+    if ($handle === false) {
       throw new \Exception("File not found: $file", self::ERR_FILE_NOT_FOUND);
     }
     fclose($handle);
 
     // Get image info
     $info = getimagesize($file);
-    if($info === false) {
+    if ($info === false) {
       throw new \Exception("Invalid image file: $file", self::ERR_INVALID_IMAGE);
     }
     $this->mimeType = $info['mime'];
 
     // Create image object from file
-    switch($this->mimeType) {
-    case 'image/gif':
-      // Load the gif
-      $gif = imagecreatefromgif($file);
-      if($gif) {
-        // Copy the gif over to a true color image to preserve its transparency. This is a
-        // workaround to prevent imagepalettetruecolor() from borking transparency.
-        $width = imagesx($gif);
-        $height = imagesy($gif);
-        $this->image = imagecreatetruecolor($width, $height);
-        $transparentColor = imagecolorallocatealpha($this->image, 0, 0, 0, 127);
-        imagecolortransparent($this->image, $transparentColor);
-        imagefill($this->image, 0, 0, $transparentColor);
-        imagecopy($this->image, $gif, 0, 0, 0, 0, $width, $height);
-        imagedestroy($gif);
-      }
-      break;
-    case 'image/jpeg':
-      $this->image = imagecreatefromjpeg($file);
-      break;
-    case 'image/png':
-      $this->image = imagecreatefrompng($file);
-      break;
-    case 'image/webp':
-      $this->image = imagecreatefromwebp($file);
-      break;
-    case 'image/bmp':
-    case 'image/x-ms-bmp':
-    case 'image/x-windows-bmp':
-      $this->image = imagecreatefrombmp($file);
-      break;
+    switch ($this->mimeType) {
+      case 'image/gif':
+        // Load the gif
+        $gif = imagecreatefromgif($file);
+        if ($gif) {
+          // Copy the gif over to a true color image to preserve its transparency. This is a
+          // workaround to prevent imagepalettetruecolor() from borking transparency.
+          $width = imagesx($gif);
+          $height = imagesy($gif);
+          $this->image = imagecreatetruecolor($width, $height);
+          $transparentColor = imagecolorallocatealpha($this->image, 0, 0, 0, 127);
+          imagecolortransparent($this->image, $transparentColor);
+          imagefill($this->image, 0, 0, $transparentColor);
+          imagecopy($this->image, $gif, 0, 0, 0, 0, $width, $height);
+          imagedestroy($gif);
+        }
+        break;
+      case 'image/jpeg':
+        $this->image = imagecreatefromjpeg($file);
+        break;
+      case 'image/png':
+        $this->image = imagecreatefrompng($file);
+        break;
+      case 'image/webp':
+        $this->image = imagecreatefromwebp($file);
+        break;
+      case 'image/bmp':
+      case 'image/x-ms-bmp':
+      case 'image/x-windows-bmp':
+        $this->image = imagecreatefrombmp($file);
+        break;
     }
-    if(!$this->image) {
+    if (!$this->image) {
       throw new \Exception("Unsupported format: " . $this->mimeType, self::ERR_UNSUPPORTED_FORMAT);
     }
 
@@ -168,7 +173,7 @@ class SimpleImage {
     imagepalettetotruecolor($this->image);
 
     // Load exif data from JPEG images
-    if($this->mimeType === 'image/jpeg' && function_exists('exif_read_data')) {
+    if ($this->mimeType === 'image/jpeg' && function_exists('exif_read_data')) {
       $this->exif = @exif_read_data($file);
     }
 
@@ -184,7 +189,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function fromNew($width, $height, $color = 'transparent') {
+  public function fromNew($width, $height, $color = 'transparent')
+  {
     $this->image = imagecreatetruecolor($width, $height);
 
     // Use PNG for dynamically created images because it's lossless and supports transparency
@@ -205,7 +211,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function fromString($string) {
+  public function fromString($string)
+  {
     return $this->fromFile('data://;base64,' . base64_encode($string));
   }
 
@@ -222,50 +229,51 @@ class SimpleImage {
   //
   // Returns an array containing the image data and mime type.
   //
-  protected function generate($mimeType = null, $quality = 100) {
+  protected function generate($mimeType = null, $quality = 100)
+  {
     // Format defaults to the original mime type
     $mimeType = $mimeType ?: $this->mimeType;
 
     // Ensure quality is a valid integer
-    if($quality === null) $quality = 100;
+    if ($quality === null) $quality = 100;
     $quality = self::keepWithin((int) $quality, 0, 100);
 
     // Capture output
     ob_start();
 
     // Generate the image
-    switch($mimeType) {
-    case 'image/gif':
-      imagesavealpha($this->image, true);
-      imagegif($this->image, null);
-      break;
-    case 'image/jpeg':
-      imageinterlace($this->image, true);
-      imagejpeg($this->image, null, $quality);
-      break;
-    case 'image/png':
-      imagesavealpha($this->image, true);
-      imagepng($this->image, null, round(9 * $quality / 100));
-      break;
-    case 'image/webp':
-      // Not all versions of PHP will have webp support enabled
-      if(!function_exists('imagewebp')) {
-        throw new \Exception(
-          'WEBP support is not enabled in your version of PHP.',
-          self::ERR_WEBP_NOT_ENABLED
-        );
-      }
-      imagesavealpha($this->image, true);
-      imagewebp($this->image, null, $quality);
-      break;
-    case 'image/bmp':
-    case 'image/x-ms-bmp':
-    case 'image/x-windows-bmp':
-      imageinterlace($this->image, true);
-      imagebmp($this->image, null, $quality);
-    break;
-    default:
-      throw new \Exception('Unsupported format: ' . $mimeType, self::ERR_UNSUPPORTED_FORMAT);
+    switch ($mimeType) {
+      case 'image/gif':
+        imagesavealpha($this->image, true);
+        imagegif($this->image, null);
+        break;
+      case 'image/jpeg':
+        imageinterlace($this->image, true);
+        imagejpeg($this->image, null, $quality);
+        break;
+      case 'image/png':
+        imagesavealpha($this->image, true);
+        imagepng($this->image, null, round(9 * $quality / 100));
+        break;
+      case 'image/webp':
+        // Not all versions of PHP will have webp support enabled
+        if (!function_exists('imagewebp')) {
+          throw new \Exception(
+            'WEBP support is not enabled in your version of PHP.',
+            self::ERR_WEBP_NOT_ENABLED
+          );
+        }
+        imagesavealpha($this->image, true);
+        imagewebp($this->image, null, $quality);
+        break;
+      case 'image/bmp':
+      case 'image/x-ms-bmp':
+      case 'image/x-windows-bmp':
+        imageinterlace($this->image, true);
+        imagebmp($this->image, null, $quality);
+        break;
+      default:
+        throw new \Exception('Unsupported format: ' . $mimeType, self::ERR_UNSUPPORTED_FORMAT);
     }
 
     // Stop capturing
@@ -287,7 +295,8 @@ class SimpleImage {
   //
   // Returns a string containing a data URI.
   //
-  public function toDataUri($mimeType = null, $quality = 100) {
+  public function toDataUri($mimeType = null, $quality = 100)
+  {
     $image = $this->generate($mimeType, $quality);
 
     return 'data:' . $image['mimeType'] . ';base64,' . base64_encode($image['data']);
@@ -302,7 +311,8 @@ class SimpleImage {
   //    type).
   //  $quality (int) - Image quality as a percentage (default 100).
   //
-  public function toDownload($filename, $mimeType = null, $quality = 100) {
+  public function toDownload($filename, $mimeType = null, $quality = 100)
+  {
     $image = $this->generate($mimeType, $quality);
 
     // Set download headers
@@ -327,11 +337,12 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function toFile($file, $mimeType = null, $quality = 100) {
+  public function toFile($file, $mimeType = null, $quality = 100)
+  {
     $image = $this->generate($mimeType, $quality);
 
     // Save the image to file
-    if(!file_put_contents($file, $image['data'])) {
+    if (!file_put_contents($file, $image['data'])) {
       throw new \Exception("Failed to write image to file: $file", self::ERR_WRITE);
     }
 
@@ -347,7 +358,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function toScreen($mimeType = null, $quality = 100) {
+  public function toScreen($mimeType = null, $quality = 100)
+  {
     $image = $this->generate($mimeType, $quality);
 
     // Output the image to stdout
@@ -366,7 +378,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function toString($mimeType = null, $quality = 100) {
+  public function toString($mimeType = null, $quality = 100)
+  {
     return $this->generate($mimeType, $quality)['data'];
   }
 
@@ -383,9 +396,10 @@ class SimpleImage {
   //
   // Returns an int|float value.
   //
-  protected static function keepWithin($value, $min, $max) {
-    if($value < $min) return $min;
-    if($value > $max) return $max;
+  protected static function keepWithin($value, $min, $max)
+  {
+    if ($value < $min) return $min;
+    if ($value > $max) return $max;
     return $value;
   }
 
@@ -394,7 +408,8 @@ class SimpleImage {
   //
   // Returns the aspect ratio as a float.
   //
-  public function getAspectRatio() {
+  public function getAspectRatio()
+  {
     return $this->getWidth() / $this->getHeight();
   }
 
@@ -403,7 +418,8 @@ class SimpleImage {
   //
   // Returns an array of exif data or null if no data is available.
   //
-  public function getExif() {
+  public function getExif()
+  {
     return isset($this->exif) ? $this->exif : null;
   }
 
@@ -412,7 +428,8 @@ class SimpleImage {
   //
   // Returns the height as an integer.
   //
-  public function getHeight() {
+  public function getHeight()
+  {
     return (int) imagesy($this->image);
   }
 
@@ -421,7 +438,8 @@ class SimpleImage {
   //
   // Returns a mime type string.
   //
-  public function getMimeType() {
+  public function getMimeType()
+  {
     return $this->mimeType;
   }
 
@@ -430,12 +448,13 @@ class SimpleImage {
   //
   // Returns a string: 'landscape', 'portrait', or 'square'
   //
-  public function getOrientation() {
+  public function getOrientation()
+  {
     $width = $this->getWidth();
     $height = $this->getHeight();
 
-    if($width > $height) return 'landscape';
-    if($width < $height) return 'portrait';
+    if ($width > $height) return 'landscape';
+    if ($width < $height) return 'portrait';
     return 'square';
   }
 
@@ -444,7 +463,8 @@ class SimpleImage {
   //
   // Returns the resolution as an array of integers: [96, 96]
   //
-  public function getResolution() {
+  public function getResolution()
+  {
     return imageresolution($this->image);
   }
 
@@ -453,7 +473,8 @@ class SimpleImage {
   //
   // Returns the width as an integer.
   //
-  public function getWidth() {
+  public function getWidth()
+  {
     return (int) imagesx($this->image);
   }
 
@@ -464,9 +485,10 @@ class SimpleImage {
   //
   // Same as PHP's imagecopymerge, but works with transparent images. Used internally for overlay.
   //
-  protected static function imageCopyMergeAlpha($dstIm, $srcIm, $dstX, $dstY, $srcX, $srcY, $srcW, $srcH, $pct) {
+  protected static function imageCopyMergeAlpha($dstIm, $srcIm, $dstX, $dstY, $srcX, $srcY, $srcW, $srcH, $pct)
+  {
     // Are we merging with transparency?
-    if($pct < 100) {
+    if ($pct < 100) {
       // Disable alpha blending and "colorize" the image using a transparent color
       imagealphablending($srcIm, false);
       imagefilter($srcIm, IMG_FILTER_COLORIZE, 0, 0, 0, 127 * ((100 - $pct) / 100));
@@ -483,37 +505,38 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function autoOrient() {
+  public function autoOrient()
+  {
     $exif = $this->getExif();
 
-    if(!$exif || !isset($exif['Orientation'])){
+    if (!$exif || !isset($exif['Orientation'])) {
       return $this;
     }
 
-    switch($exif['Orientation']) {
-    case 1: // Do nothing!
-      break;
-    case 2: // Flip horizontally
-      $this->flip('x');
-      break;
-    case 3: // Rotate 180 degrees
-      $this->rotate(180);
-      break;
-    case 4: // Flip vertically
-      $this->flip('y');
-      break;
-    case 5: // Rotate 90 degrees clockwise and flip vertically
-      $this->flip('y')->rotate(90);
-      break;
-    case 6: // Rotate 90 clockwise
-      $this->rotate(90);
-      break;
-    case 7: // Rotate 90 clockwise and flip horizontally
-      $this->flip('x')->rotate(90);
-      break;
-    case 8: // Rotate 90 counterclockwise
-      $this->rotate(-90);
-      break;
+    switch ($exif['Orientation']) {
+      case 1: // Do nothing!
+        break;
+      case 2: // Flip horizontally
+        $this->flip('x');
+        break;
+      case 3: // Rotate 180 degrees
+        $this->rotate(180);
+        break;
+      case 4: // Flip vertically
+        $this->flip('y');
+        break;
+      case 5: // Rotate 90 degrees clockwise and flip vertically
+        $this->flip('y')->rotate(90);
+        break;
+      case 6: // Rotate 90 clockwise
+        $this->rotate(90);
+        break;
+      case 7: // Rotate 90 clockwise and flip horizontally
+        $this->flip('x')->rotate(90);
+        break;
+      case 8: // Rotate 90 counterclockwise
+        $this->rotate(-90);
+        break;
     }
 
     return $this;
@@ -527,14 +550,15 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function bestFit($maxWidth, $maxHeight) {
+  public function bestFit($maxWidth, $maxHeight)
+  {
     // If the image already fits, there's nothing to do
-    if($this->getWidth() <= $maxWidth && $this->getHeight() <= $maxHeight) {
+    if ($this->getWidth() <= $maxWidth && $this->getHeight() <= $maxHeight) {
       return $this;
     }
 
     // Calculate max width or height based on orientation
-    if($this->getOrientation() === 'portrait') {
+    if ($this->getOrientation() === 'portrait') {
       $height = $maxHeight;
       $width = $maxHeight * $this->getAspectRatio();
     } else {
@@ -543,13 +567,13 @@ class SimpleImage {
     }
 
     // Reduce to max width
-    if($width > $maxWidth) {
+    if ($width > $maxWidth) {
       $width = $maxWidth;
       $height = $width / $this->getAspectRatio();
     }
 
     // Reduce to max height
-    if($height > $maxHeight) {
+    if ($height > $maxHeight) {
       $height = $maxHeight;
       $width = $height * $this->getAspectRatio();
     }
@@ -567,7 +591,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function crop($x1, $y1, $x2, $y2) {
+  public function crop($x1, $y1, $x2, $y2)
+  {
     // Keep crop within image dimensions
     $x1 = self::keepWithin($x1, 0, $this->getWidth());
     $x2 = self::keepWithin($x2, 0, $this->getWidth());
@@ -593,7 +618,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  function duotone($lightColor, $darkColor) {
+  function duotone($lightColor, $darkColor)
+  {
     $lightColor = self::normalizeColor($lightColor);
     $darkColor = self::normalizeColor($darkColor);
 
@@ -604,7 +630,7 @@ class SimpleImage {
 
     // Create a matrix of all possible duotone colors based on gray values
     $pixels = [];
-    for($i = 0; $i <= 255; $i++) {
+    for ($i = 0; $i <= 255; $i++) {
       $grayAvg = $i / 255;
       $pixels['red'][$i] = $darkColor['red'] + $grayAvg * $redAvg;
       $pixels['green'][$i] = $darkColor['green'] + $grayAvg * $greenAvg;
@@ -612,8 +638,8 @@ class SimpleImage {
     }
 
     // Apply the filter pixel by pixel
-    for($x = 0; $x < $this->getWidth(); $x++) {
-      for($y = 0; $y < $this->getHeight(); $y++) {
+    for ($x = 0; $x < $this->getWidth(); $x++) {
+      for ($y = 0; $y < $this->getHeight(); $y++) {
         $rgb = $this->getColorAt($x, $y);
         $gray = min(255, round(0.299 * $rgb['red'] + 0.114 * $rgb['blue'] + 0.587 * $rgb['green']));
         $this->dot($x, $y, [
@@ -637,7 +663,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function fitToHeight($height) {
+  public function fitToHeight($height)
+  {
     return $this->resize(null, $height);
   }
 
@@ -651,7 +678,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function fitToWidth($width) {
+  public function fitToWidth($width)
+  {
     return $this->resize($width, null);
   }
 
@@ -662,17 +690,18 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function flip($direction) {
-    switch($direction) {
-    case 'x':
-      imageflip($this->image, IMG_FLIP_HORIZONTAL);
-      break;
-    case 'y':
-      imageflip($this->image, IMG_FLIP_VERTICAL);
-      break;
-    case 'both':
-      imageflip($this->image, IMG_FLIP_BOTH);
-      break;
+  public function flip($direction)
+  {
+    switch ($direction) {
+      case 'x':
+        imageflip($this->image, IMG_FLIP_HORIZONTAL);
+        break;
+      case 'y':
+        imageflip($this->image, IMG_FLIP_VERTICAL);
+        break;
+      case 'both':
+        imageflip($this->image, IMG_FLIP_BOTH);
+        break;
     }
 
     return $this;
@@ -686,7 +715,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function maxColors($max, $dither = true) {
+  public function maxColors($max, $dither = true)
+  {
     imagetruecolortopalette($this->image, $dither, max(1, $max));
 
     return $this;
@@ -705,9 +735,10 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function overlay($overlay, $anchor = 'center', $opacity = 1, $xOffset = 0, $yOffset = 0) {
+  public function overlay($overlay, $anchor = 'center', $opacity = 1, $xOffset = 0, $yOffset = 0)
+  {
     // Load overlay image
-    if(!($overlay instanceof SimpleImage)) {
+    if (!($overlay instanceof SimpleImage)) {
       $overlay = new SimpleImage($overlay);
     }
 
@@ -715,7 +746,7 @@ class SimpleImage {
     $opacity = self::keepWithin($opacity, 0, 1) * 100;
 
     // Determine placement
-    switch($anchor) {
+    switch ($anchor) {
       case 'top left':
         $x = $xOffset;
         $y = $yOffset;
@@ -758,8 +789,10 @@ class SimpleImage {
     self::imageCopyMergeAlpha(
       $this->image,
       $overlay->image,
-      $x, $y,
-      0, 0,
+      $x,
+      $y,
+      0,
+      0,
       $overlay->getWidth(),
       $overlay->getHeight(),
       $opacity
@@ -777,24 +810,25 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function resize($width = null, $height = null) {
+  public function resize($width = null, $height = null)
+  {
     // No dimentions specified
-    if(!$width && !$height) {
+    if (!$width && !$height) {
       return $this;
     }
 
     // Resize to width
-    if($width && !$height) {
+    if ($width && !$height) {
       $height = $width / $this->getAspectRatio();
     }
 
     // Resize to height
-    if(!$width && $height) {
+    if (!$width && $height) {
       $width = $height * $this->getAspectRatio();
     }
 
     // If the dimensions are the same, there's no need to resize
-    if($this->getWidth() === $width && $this->getHeight() === $height) {
+    if ($this->getWidth() === $width && $this->getHeight() === $height) {
       return $this;
     }
 
@@ -808,7 +842,10 @@ class SimpleImage {
     imagecopyresampled(
       $newImage,
       $this->image,
-      0, 0, 0, 0,
+      0,
+      0,
+      0,
+      0,
       $width,
       $height,
       $this->getWidth(),
@@ -829,8 +866,9 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function resolution($res_x, $res_y = null) {
-    if(is_null($res_y)) {
+  public function resolution($res_x, $res_y = null)
+  {
+    if (is_null($res_y)) {
       imageresolution($this->image, $res_x);
     } else {
       imageresolution($this->image, $res_x, $res_y);
@@ -848,13 +886,14 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function rotate($angle, $backgroundColor = 'transparent') {
+  public function rotate($angle, $backgroundColor = 'transparent')
+  {
     // Rotate the image on a canvas with the desired background color
     $backgroundColor = $this->allocateColor($backgroundColor);
 
     $this->image = imagerotate(
       $this->image,
-      -(self::keepWithin($angle, -360, 360)),
+      - (self::keepWithin($angle, -360, 360)),
       $backgroundColor
     );
     imagecolortransparent($this->image, imagecolorallocatealpha($this->image, 0, 0, 0, 127));
@@ -884,9 +923,10 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function text($text, $options, &$boundary = null) {
+  public function text($text, $options, &$boundary = null)
+  {
     // Check for freetype support
-    if(!function_exists('imagettftext')) {
+    if (!function_exists('imagettftext')) {
       throw new \Exception(
         'Freetype support is not enabled in your version of PHP.',
         self::ERR_FREETYPE_NOT_ENABLED
@@ -926,7 +966,7 @@ class SimpleImage {
     // See: https://github.com/claviska/SimpleImage/issues/165
     //
     $box = imagettfbbox($size, $angle, $fontFile, $text);
-    if(!$box) {
+    if (!$box) {
       throw new \Exception("Unable to load font file: $fontFile", self::ERR_FONT_FILE);
     }
     $boxWidth = abs($box[6] - $box[2]);
@@ -942,43 +982,43 @@ class SimpleImage {
     $descenderHeight = $fullHeight - $capHeight;
 
     // Determine position
-    switch($anchor) {
-    case 'top left':
-      $x = $xOffset;
-      $y = $yOffset + $boxHeight;
-      break;
-    case 'top right':
-      $x = $this->getWidth() - $boxWidth + $xOffset;
-      $y = $yOffset + $boxHeight;
-      break;
-    case 'top':
-      $x = ($this->getWidth() / 2) - ($boxWidth / 2) + $xOffset;
-      $y = $yOffset + $boxHeight;
-      break;
-    case 'bottom left':
-      $x = $xOffset;
-      $y = $this->getHeight() - $boxHeight + $yOffset + $boxHeight;
-      break;
-    case 'bottom right':
-      $x = $this->getWidth() - $boxWidth + $xOffset;
-      $y = $this->getHeight() - $boxHeight + $yOffset + $boxHeight;
-      break;
-    case 'bottom':
-      $x = ($this->getWidth() / 2) - ($boxWidth / 2) + $xOffset;
-      $y = $this->getHeight() - $boxHeight + $yOffset + $boxHeight;
-      break;
-    case 'left':
-      $x = $xOffset;
-      $y = ($this->getHeight() / 2) - (($boxHeight / 2) - $boxHeight) + $yOffset;
-      break;
-    case 'right';
-      $x = $this->getWidth() - $boxWidth + $xOffset;
-      $y = ($this->getHeight() / 2) - (($boxHeight / 2) - $boxHeight) + $yOffset;
-      break;
-    default: // center
-      $x = ($this->getWidth() / 2) - ($boxWidth / 2) + $xOffset;
-      $y = ($this->getHeight() / 2) - (($boxHeight / 2) - $boxHeight) + $yOffset;
-      break;
+    switch ($anchor) {
+      case 'top left':
+        $x = $xOffset;
+        $y = $yOffset + $boxHeight;
+        break;
+      case 'top right':
+        $x = $this->getWidth() - $boxWidth + $xOffset;
+        $y = $yOffset + $boxHeight;
+        break;
+      case 'top':
+        $x = ($this->getWidth() / 2) - ($boxWidth / 2) + $xOffset;
+        $y = $yOffset + $boxHeight;
+        break;
+      case 'bottom left':
+        $x = $xOffset;
+        $y = $this->getHeight() - $boxHeight + $yOffset + $boxHeight;
+        break;
+      case 'bottom right':
+        $x = $this->getWidth() - $boxWidth + $xOffset;
+        $y = $this->getHeight() - $boxHeight + $yOffset + $boxHeight;
+        break;
+      case 'bottom':
+        $x = ($this->getWidth() / 2) - ($boxWidth / 2) + $xOffset;
+        $y = $this->getHeight() - $boxHeight + $yOffset + $boxHeight;
+        break;
+      case 'left':
+        $x = $xOffset;
+        $y = ($this->getHeight() / 2) - (($boxHeight / 2) - $boxHeight) + $yOffset;
+        break;
+      case 'right';
+        $x = $this->getWidth() - $boxWidth + $xOffset;
+        $y = ($this->getHeight() / 2) - (($boxHeight / 2) - $boxHeight) + $yOffset;
+        break;
+      default: // center
+        $x = ($this->getWidth() / 2) - ($boxWidth / 2) + $xOffset;
+        $y = ($this->getHeight() / 2) - (($boxHeight / 2) - $boxHeight) + $yOffset;
+        break;
     }
 
     $x = (int) round($x);
@@ -995,7 +1035,7 @@ class SimpleImage {
     ];
 
     // Text shadow
-    if(is_array($options['shadow'])) {
+    if (is_array($options['shadow'])) {
       imagettftext(
         $this->image,
         $size,
@@ -1026,73 +1066,74 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function thumbnail($width, $height, $anchor = 'center') {
+  public function thumbnail($width, $height, $anchor = 'center')
+  {
     // Determine aspect ratios
     $currentRatio = $this->getHeight() / $this->getWidth();
     $targetRatio = $height / $width;
 
     // Fit to height/width
-    if($targetRatio > $currentRatio) {
+    if ($targetRatio > $currentRatio) {
       $this->resize(null, $height);
     } else {
       $this->resize($width, null);
     }
 
-    switch($anchor) {
-    case 'top':
-      $x1 = floor(($this->getWidth() / 2) - ($width / 2));
-      $x2 = $width + $x1;
-      $y1 = 0;
-      $y2 = $height;
-      break;
-    case 'bottom':
-      $x1 = floor(($this->getWidth() / 2) - ($width / 2));
-      $x2 = $width + $x1;
-      $y1 = $this->getHeight() - $height;
-      $y2 = $this->getHeight();
-      break;
-    case 'left':
-      $x1 = 0;
-      $x2 = $width;
-      $y1 = floor(($this->getHeight() / 2) - ($height / 2));
-      $y2 = $height + $y1;
-      break;
-    case 'right':
-      $x1 = $this->getWidth() - $width;
-      $x2 = $this->getWidth();
-      $y1 = floor(($this->getHeight() / 2) - ($height / 2));
-      $y2 = $height + $y1;
-      break;
-    case 'top left':
-      $x1 = 0;
-      $x2 = $width;
-      $y1 = 0;
-      $y2 = $height;
-      break;
-    case 'top right':
-      $x1 = $this->getWidth() - $width;
-      $x2 = $this->getWidth();
-      $y1 = 0;
-      $y2 = $height;
-      break;
-    case 'bottom left':
-      $x1 = 0;
-      $x2 = $width;
-      $y1 = $this->getHeight() - $height;
-      $y2 = $this->getHeight();
-      break;
-    case 'bottom right':
-      $x1 = $this->getWidth() - $width;
-      $x2 = $this->getWidth();
-      $y1 = $this->getHeight() - $height;
-      $y2 = $this->getHeight();
-      break;
-    default:
-      $x1 = floor(($this->getWidth() / 2) - ($width / 2));
-      $x2 = $width + $x1;
-      $y1 = floor(($this->getHeight() / 2) - ($height / 2));
-      $y2 = $height + $y1;
-      break;
+    switch ($anchor) {
+      case 'top':
+        $x1 = floor(($this->getWidth() / 2) - ($width / 2));
+        $x2 = $width + $x1;
+        $y1 = 0;
+        $y2 = $height;
+        break;
+      case 'bottom':
+        $x1 = floor(($this->getWidth() / 2) - ($width / 2));
+        $x2 = $width + $x1;
+        $y1 = $this->getHeight() - $height;
+        $y2 = $this->getHeight();
+        break;
+      case 'left':
+        $x1 = 0;
+        $x2 = $width;
+        $y1 = floor(($this->getHeight() / 2) - ($height / 2));
+        $y2 = $height + $y1;
+        break;
+      case 'right':
+        $x1 = $this->getWidth() - $width;
+        $x2 = $this->getWidth();
+        $y1 = floor(($this->getHeight() / 2) - ($height / 2));
+        $y2 = $height + $y1;
+        break;
+      case 'top left':
+        $x1 = 0;
+        $x2 = $width;
+        $y1 = 0;
+        $y2 = $height;
+        break;
+      case 'top right':
+        $x1 = $this->getWidth() - $width;
+        $x2 = $this->getWidth();
+        $y1 = 0;
+        $y2 = $height;
+        break;
+      case 'bottom left':
+        $x1 = 0;
+        $x2 = $width;
+        $y1 = $this->getHeight() - $height;
+        $y2 = $this->getHeight();
+        break;
+      case 'bottom right':
+        $x1 = $this->getWidth() - $width;
+        $x2 = $this->getWidth();
+        $y1 = $this->getHeight() - $height;
+        $y2 = $this->getHeight();
+        break;
+      default:
+        $x1 = floor(($this->getWidth() / 2) - ($width / 2));
+        $x2 = $width + $x1;
+        $y1 = floor(($this->getHeight() / 2) - ($height / 2));
+        $y2 = $height + $y1;
+        break;
     }
 
     // Return the cropped thumbnail image
@@ -1117,12 +1158,13 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function arc($x, $y, $width, $height, $start, $end, $color, $thickness = 1) {
+  public function arc($x, $y, $width, $height, $start, $end, $color, $thickness = 1)
+  {
     // Allocate the color
     $color = $this->allocateColor($color);
 
     // Draw an arc
-    if($thickness === 'filled') {
+    if ($thickness === 'filled') {
       imagesetthickness($this->image, 1);
       imagefilledarc($this->image, $x, $y, $width, $height, $start, $end, $color, IMG_ARC_PIE);
     } else {
@@ -1141,14 +1183,15 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function border($color, $thickness = 1) {
+  public function border($color, $thickness = 1)
+  {
     $x1 = 0;
     $y1 = 0;
     $x2 = $this->getWidth() - 1;
     $y2 = $this->getHeight() - 1;
 
     // Draw a border rectangle until it reaches the correct width
-    for($i = 0; $i < $thickness; $i++) {
+    for ($i = 0; $i < $thickness; $i++) {
       $this->rectangle($x1++, $y1++, $x2--, $y2--, $color);
     }
 
@@ -1164,7 +1207,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function dot($x, $y, $color) {
+  public function dot($x, $y, $color)
+  {
     $color = $this->allocateColor($color);
     imagesetpixel($this->image, $x, $y, $color);
 
@@ -1183,19 +1227,20 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function ellipse($x, $y, $width, $height, $color, $thickness = 1) {
+  public function ellipse($x, $y, $width, $height, $color, $thickness = 1)
+  {
     // Allocate the color
     $color = $this->allocateColor($color);
 
     // Draw an ellipse
-    if($thickness === 'filled') {
+    if ($thickness === 'filled') {
       imagesetthickness($this->image, 1);
       imagefilledellipse($this->image, $x, $y, $width, $height, $color);
     } else {
       // imagesetthickness doesn't appear to work with imageellipse, so we work around it.
       imagesetthickness($this->image, 1);
       $i = 0;
-      while($i++ < $thickness * 2 - 1) {
+      while ($i++ < $thickness * 2 - 1) {
         imageellipse($this->image, $x, $y, --$width, $height--, $color);
       }
     }
@@ -1210,7 +1255,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function fill($color) {
+  public function fill($color)
+  {
     // Draw a filled rectangle over the entire image
     $this->rectangle(0, 0, $this->getWidth(), $this->getHeight(), 'white', 'filled');
 
@@ -1233,7 +1279,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function line($x1, $y1, $x2, $y2, $color, $thickness = 1) {
+  public function line($x1, $y1, $x2, $y2, $color, $thickness = 1)
+  {
     // Allocate the color
     $color = $this->allocateColor($color);
 
@@ -1258,19 +1305,20 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function polygon($vertices, $color, $thickness = 1) {
+  public function polygon($vertices, $color, $thickness = 1)
+  {
     // Allocate the color
     $color = $this->allocateColor($color);
 
     // Convert [['x' => x1, 'y' => x1], ['x' => x1, 'y' => y2], ...] to [x1, y1, x2, y2, ...]
     $points = [];
-    foreach($vertices as $vals) {
+    foreach ($vertices as $vals) {
       $points[] = $vals['x'];
       $points[] = $vals['y'];
     }
 
     // Draw a polygon
-    if($thickness === 'filled') {
+    if ($thickness === 'filled') {
       imagesetthickness($this->image, 1);
       imagefilledpolygon($this->image, $points, count($vertices), $color);
     } else {
@@ -1293,12 +1341,13 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function rectangle($x1, $y1, $x2, $y2, $color, $thickness = 1) {
+  public function rectangle($x1, $y1, $x2, $y2, $color, $thickness = 1)
+  {
     // Allocate the color
     $color = $this->allocateColor($color);
 
     // Draw a rectangle
-    if($thickness === 'filled') {
+    if ($thickness === 'filled') {
       imagesetthickness($this->image, 1);
       imagefilledrectangle($this->image, $x1, $y1, $x2, $y2, $color);
     } else {
@@ -1322,8 +1371,9 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function roundedRectangle($x1, $y1, $x2, $y2, $radius, $color, $thickness = 1) {
-    if($thickness === 'filled') {
+  public function roundedRectangle($x1, $y1, $x2, $y2, $radius, $color, $thickness = 1)
+  {
+    if ($thickness === 'filled') {
       // Draw the filled rectangle without edges
       $this->rectangle($x1 + $radius + 1, $y1, $x2 - $radius - 1, $y2, $color, 'filled');
       $this->rectangle($x1, $y1 + $radius + 1, $x1 + $radius, $y2 - $radius - 1, $color, 'filled');
@@ -1361,10 +1411,11 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function blur($type = 'selective', $passes = 1) {
+  public function blur($type = 'selective', $passes = 1)
+  {
     $filter = $type === 'gaussian' ? IMG_FILTER_GAUSSIAN_BLUR : IMG_FILTER_SELECTIVE_BLUR;
 
-    for($i = 0; $i < $passes; $i++) {
+    for ($i = 0; $i < $passes; $i++) {
       imagefilter($this->image, $filter);
     }
 
@@ -1378,7 +1429,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function brighten($percentage) {
+  public function brighten($percentage)
+  {
     $percentage = self::keepWithin(255 * $percentage / 100, 0, 255);
 
     imagefilter($this->image, IMG_FILTER_BRIGHTNESS, $percentage);
@@ -1393,7 +1445,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function colorize($color) {
+  public function colorize($color)
+  {
     $color = self::normalizeColor($color);
 
     imagefilter(
@@ -1415,7 +1468,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function contrast($percentage) {
+  public function contrast($percentage)
+  {
     imagefilter($this->image, IMG_FILTER_CONTRAST, self::keepWithin($percentage, -100, 100));
 
     return $this;
@@ -1428,7 +1482,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function darken($percentage) {
+  public function darken($percentage)
+  {
     $percentage = self::keepWithin(255 * $percentage / 100, 0, 255);
 
     imagefilter($this->image, IMG_FILTER_BRIGHTNESS, -$percentage);
@@ -1441,7 +1496,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function desaturate() {
+  public function desaturate()
+  {
     imagefilter($this->image, IMG_FILTER_GRAYSCALE);
 
     return $this;
@@ -1452,7 +1508,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function edgeDetect() {
+  public function edgeDetect()
+  {
     imagefilter($this->image, IMG_FILTER_EDGEDETECT);
 
     return $this;
@@ -1463,7 +1520,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function emboss() {
+  public function emboss()
+  {
     imagefilter($this->image, IMG_FILTER_EMBOSS);
 
     return $this;
@@ -1474,7 +1532,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function invert() {
+  public function invert()
+  {
     imagefilter($this->image, IMG_FILTER_NEGATE);
 
     return $this;
@@ -1487,7 +1546,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function opacity($opacity) {
+  public function opacity($opacity)
+  {
     // Create a transparent image
     $newImage = new SimpleImage();
     $newImage->fromNew($this->getWidth(), $this->getHeight());
@@ -1496,8 +1556,10 @@ class SimpleImage {
     self::imageCopyMergeAlpha(
       $newImage->image,
       $this->image,
-      0, 0,
-      0, 0,
+      0,
+      0,
+      0,
+      0,
       $this->getWidth(),
       $this->getHeight(),
       self::keepWithin($opacity, 0, 1) * 100
@@ -1513,7 +1575,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function pixelate($size = 10) {
+  public function pixelate($size = 10)
+  {
     imagefilter($this->image, IMG_FILTER_PIXELATE, $size, true);
 
     return $this;
@@ -1524,7 +1587,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function sepia() {
+  public function sepia()
+  {
     imagefilter($this->image, IMG_FILTER_GRAYSCALE);
     imagefilter($this->image, IMG_FILTER_COLORIZE, 70, 35, 0);
 
@@ -1538,7 +1602,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function sharpen($amount = 50) {
+  public function sharpen($amount = 50)
+  {
     // Normalize amount
     $amount = max(1, min(100, $amount)) / 100;
 
@@ -1559,7 +1624,8 @@ class SimpleImage {
   //
   // Returns a SimpleImage object.
   //
-  public function sketch() {
+  public function sketch()
+  {
     imagefilter($this->image, IMG_FILTER_MEAN_REMOVAL);
 
     return $this;
@@ -1577,7 +1643,8 @@ class SimpleImage {
   //
   // Returns a color identifier.
   //
-  protected function allocateColor($color) {
+  protected function allocateColor($color)
+  {
     $color = self::normalizeColor($color);
 
     // Was this color already allocated?
@@ -1588,7 +1655,7 @@ class SimpleImage {
       $color['blue'],
       127 - ($color['alpha'] * 127)
     );
-    if($index > -1) {
+    if ($index > -1) {
       // Yes, return this color index
       return $index;
     }
@@ -1614,7 +1681,8 @@ class SimpleImage {
   //
   // Returns an RGBA color array.
   //
-  public static function adjustColor($color, $red, $green, $blue, $alpha) {
+  public static function adjustColor($color, $red, $green, $blue, $alpha)
+  {
     // Normalize to RGBA
     $color = self::normalizeColor($color);
 
@@ -1635,7 +1703,8 @@ class SimpleImage {
   //
   // Returns an RGBA color array.
   //
-  public static function darkenColor($color, $amount) {
+  public static function darkenColor($color, $amount)
+  {
     return self::adjustColor($color, -$amount, -$amount, -$amount, 0);
   }
 
@@ -1652,9 +1721,10 @@ class SimpleImage {
   //
   // Returns an array of RGBA colors arrays.
   //
-  public function extractColors($count = 5, $backgroundColor = null) {
+  public function extractColors($count = 5, $backgroundColor = null)
+  {
     // Check for required library
-    if(!class_exists('\League\ColorExtractor\ColorExtractor')) {
+    if (!class_exists('\League\ColorExtractor\ColorExtractor')) {
       throw new \Exception(
         'Required library \League\ColorExtractor is missing.',
         self::ERR_LIB_NOT_LOADED
@@ -1662,7 +1732,7 @@ class SimpleImage {
     }
 
     // Convert background color to an integer value
-    if($backgroundColor) {
+    if ($backgroundColor) {
       $backgroundColor = self::normalizeColor($backgroundColor);
       $backgroundColor = \League\ColorExtractor\Color::fromRgbToInt([
         'r' => $backgroundColor['red'],
@@ -1677,7 +1747,7 @@ class SimpleImage {
     $colors = $extractor->extract($count);
 
     // Convert colors to an RGBA color array
-    foreach($colors as $key => $value) {
+    foreach ($colors as $key => $value) {
       $colors[$key] = self::normalizeColor(\League\ColorExtractor\Color::fromIntToHex($value));
     }
 
@@ -1692,9 +1762,10 @@ class SimpleImage {
   //
   // Returns an RGBA color array or false if the x/y position is off the canvas.
   //
-  public function getColorAt($x, $y) {
+  public function getColorAt($x, $y)
+  {
     // Coordinates must be on the canvas
-    if($x < 0 || $x > $this->getWidth() || $y < 0 || $y > $this->getHeight()) {
+    if ($x < 0 || $x > $this->getWidth() || $y < 0 || $y > $this->getHeight()) {
       return false;
     }
 
@@ -1714,7 +1785,8 @@ class SimpleImage {
   //
   // Returns an RGBA color array.
   //
-  public static function lightenColor($color, $amount) {
+  public static function lightenColor($color, $amount)
+  {
     return self::adjustColor($color, $amount, $amount, $amount, 0);
   }
 
@@ -1729,60 +1801,162 @@ class SimpleImage {
   //
   // Returns an array: [red, green, blue, alpha]
   //
-  public static function normalizeColor($color) {
+  public static function normalizeColor($color)
+  {
     // 140 CSS color names and hex values
     $cssColors = [
-      'aliceblue' => '#f0f8ff', 'antiquewhite' => '#faebd7', 'aqua' => '#00ffff',
-      'aquamarine' => '#7fffd4', 'azure' => '#f0ffff', 'beige' => '#f5f5dc', 'bisque' => '#ffe4c4',
-      'black' => '#000000', 'blanchedalmond' => '#ffebcd', 'blue' => '#0000ff',
-      'blueviolet' => '#8a2be2', 'brown' => '#a52a2a', 'burlywood' => '#deb887',
-      'cadetblue' => '#5f9ea0', 'chartreuse' => '#7fff00', 'chocolate' => '#d2691e',
-      'coral' => '#ff7f50', 'cornflowerblue' => '#6495ed', 'cornsilk' => '#fff8dc',
-      'crimson' => '#dc143c', 'cyan' => '#00ffff', 'darkblue' => '#00008b', 'darkcyan' => '#008b8b',
-      'darkgoldenrod' => '#b8860b', 'darkgray' => '#a9a9a9', 'darkgrey' => '#a9a9a9',
-      'darkgreen' => '#006400', 'darkkhaki' => '#bdb76b', 'darkmagenta' => '#8b008b',
-      'darkolivegreen' => '#556b2f', 'darkorange' => '#ff8c00', 'darkorchid' => '#9932cc',
-      'darkred' => '#8b0000', 'darksalmon' => '#e9967a', 'darkseagreen' => '#8fbc8f',
-      'darkslateblue' => '#483d8b', 'darkslategray' => '#2f4f4f', 'darkslategrey' => '#2f4f4f',
-      'darkturquoise' => '#00ced1', 'darkviolet' => '#9400d3', 'deeppink' => '#ff1493',
-      'deepskyblue' => '#00bfff', 'dimgray' => '#696969', 'dimgrey' => '#696969',
-      'dodgerblue' => '#1e90ff', 'firebrick' => '#b22222', 'floralwhite' => '#fffaf0',
-      'forestgreen' => '#228b22', 'fuchsia' => '#ff00ff', 'gainsboro' => '#dcdcdc',
-      'ghostwhite' => '#f8f8ff', 'gold' => '#ffd700', 'goldenrod' => '#daa520', 'gray' => '#808080',
-      'grey' => '#808080', 'green' => '#008000', 'greenyellow' => '#adff2f',
-      'honeydew' => '#f0fff0', 'hotpink' => '#ff69b4', 'indianred ' => '#cd5c5c',
-      'indigo ' => '#4b0082', 'ivory' => '#fffff0', 'khaki' => '#f0e68c', 'lavender' => '#e6e6fa',
-      'lavenderblush' => '#fff0f5', 'lawngreen' => '#7cfc00', 'lemonchiffon' => '#fffacd',
-      'lightblue' => '#add8e6', 'lightcoral' => '#f08080', 'lightcyan' => '#e0ffff',
-      'lightgoldenrodyellow' => '#fafad2', 'lightgray' => '#d3d3d3', 'lightgrey' => '#d3d3d3',
-      'lightgreen' => '#90ee90', 'lightpink' => '#ffb6c1', 'lightsalmon' => '#ffa07a',
-      'lightseagreen' => '#20b2aa', 'lightskyblue' => '#87cefa', 'lightslategray' => '#778899',
-      'lightslategrey' => '#778899', 'lightsteelblue' => '#b0c4de', 'lightyellow' => '#ffffe0',
-      'lime' => '#00ff00', 'limegreen' => '#32cd32', 'linen' => '#faf0e6', 'magenta' => '#ff00ff',
-      'maroon' => '#800000', 'mediumaquamarine' => '#66cdaa', 'mediumblue' => '#0000cd',
-      'mediumorchid' => '#ba55d3', 'mediumpurple' => '#9370db', 'mediumseagreen' => '#3cb371',
-      'mediumslateblue' => '#7b68ee', 'mediumspringgreen' => '#00fa9a',
-      'mediumturquoise' => '#48d1cc', 'mediumvioletred' => '#c71585', 'midnightblue' => '#191970',
-      'mintcream' => '#f5fffa', 'mistyrose' => '#ffe4e1', 'moccasin' => '#ffe4b5',
-      'navajowhite' => '#ffdead', 'navy' => '#000080', 'oldlace' => '#fdf5e6', 'olive' => '#808000',
-      'olivedrab' => '#6b8e23', 'orange' => '#ffa500', 'orangered' => '#ff4500',
-      'orchid' => '#da70d6', 'palegoldenrod' => '#eee8aa', 'palegreen' => '#98fb98',
-      'paleturquoise' => '#afeeee', 'palevioletred' => '#db7093', 'papayawhip' => '#ffefd5',
-      'peachpuff' => '#ffdab9', 'peru' => '#cd853f', 'pink' => '#ffc0cb', 'plum' => '#dda0dd',
-      'powderblue' => '#b0e0e6', 'purple' => '#800080', 'rebeccapurple' => '#663399',
-      'red' => '#ff0000', 'rosybrown' => '#bc8f8f', 'royalblue' => '#4169e1',
-      'saddlebrown' => '#8b4513', 'salmon' => '#fa8072', 'sandybrown' => '#f4a460',
-      'seagreen' => '#2e8b57', 'seashell' => '#fff5ee', 'sienna' => '#a0522d',
-      'silver' => '#c0c0c0', 'skyblue' => '#87ceeb', 'slateblue' => '#6a5acd',
-      'slategray' => '#708090', 'slategrey' => '#708090', 'snow' => '#fffafa',
-      'springgreen' => '#00ff7f', 'steelblue' => '#4682b4', 'tan' => '#d2b48c', 'teal' => '#008080',
-      'thistle' => '#d8bfd8', 'tomato' => '#ff6347', 'turquoise' => '#40e0d0',
-      'violet' => '#ee82ee', 'wheat' => '#f5deb3', 'white' => '#ffffff', 'whitesmoke' => '#f5f5f5',
-      'yellow' => '#ffff00', 'yellowgreen' => '#9acd32'
+      'aliceblue' => '#f0f8ff',
+      'antiquewhite' => '#faebd7',
+      'aqua' => '#00ffff',
+      'aquamarine' => '#7fffd4',
+      'azure' => '#f0ffff',
+      'beige' => '#f5f5dc',
+      'bisque' => '#ffe4c4',
+      'black' => '#000000',
+      'blanchedalmond' => '#ffebcd',
+      'blue' => '#0000ff',
+      'blueviolet' => '#8a2be2',
+      'brown' => '#a52a2a',
+      'burlywood' => '#deb887',
+      'cadetblue' => '#5f9ea0',
+      'chartreuse' => '#7fff00',
+      'chocolate' => '#d2691e',
+      'coral' => '#ff7f50',
+      'cornflowerblue' => '#6495ed',
+      'cornsilk' => '#fff8dc',
+      'crimson' => '#dc143c',
+      'cyan' => '#00ffff',
+      'darkblue' => '#00008b',
+      'darkcyan' => '#008b8b',
+      'darkgoldenrod' => '#b8860b',
+      'darkgray' => '#a9a9a9',
+      'darkgrey' => '#a9a9a9',
+      'darkgreen' => '#006400',
+      'darkkhaki' => '#bdb76b',
+      'darkmagenta' => '#8b008b',
+      'darkolivegreen' => '#556b2f',
+      'darkorange' => '#ff8c00',
+      'darkorchid' => '#9932cc',
+      'darkred' => '#8b0000',
+      'darksalmon' => '#e9967a',
+      'darkseagreen' => '#8fbc8f',
+      'darkslateblue' => '#483d8b',
+      'darkslategray' => '#2f4f4f',
+      'darkslategrey' => '#2f4f4f',
+      'darkturquoise' => '#00ced1',
+      'darkviolet' => '#9400d3',
+      'deeppink' => '#ff1493',
+      'deepskyblue' => '#00bfff',
+      'dimgray' => '#696969',
+      'dimgrey' => '#696969',
+      'dodgerblue' => '#1e90ff',
+      'firebrick' => '#b22222',
+      'floralwhite' => '#fffaf0',
+      'forestgreen' => '#228b22',
+      'fuchsia' => '#ff00ff',
+      'gainsboro' => '#dcdcdc',
+      'ghostwhite' => '#f8f8ff',
+      'gold' => '#ffd700',
+      'goldenrod' => '#daa520',
+      'gray' => '#808080',
+      'grey' => '#808080',
+      'green' => '#008000',
+      'greenyellow' => '#adff2f',
+      'honeydew' => '#f0fff0',
+      'hotpink' => '#ff69b4',
+      'indianred ' => '#cd5c5c',
+      'indigo ' => '#4b0082',
+      'ivory' => '#fffff0',
+      'khaki' => '#f0e68c',
+      'lavender' => '#e6e6fa',
+      'lavenderblush' => '#fff0f5',
+      'lawngreen' => '#7cfc00',
+      'lemonchiffon' => '#fffacd',
+      'lightblue' => '#add8e6',
+      'lightcoral' => '#f08080',
+      'lightcyan' => '#e0ffff',
+      'lightgoldenrodyellow' => '#fafad2',
+      'lightgray' => '#d3d3d3',
+      'lightgrey' => '#d3d3d3',
+      'lightgreen' => '#90ee90',
+      'lightpink' => '#ffb6c1',
+      'lightsalmon' => '#ffa07a',
+      'lightseagreen' => '#20b2aa',
+      'lightskyblue' => '#87cefa',
+      'lightslategray' => '#778899',
+      'lightslategrey' => '#778899',
+      'lightsteelblue' => '#b0c4de',
+      'lightyellow' => '#ffffe0',
+      'lime' => '#00ff00',
+      'limegreen' => '#32cd32',
+      'linen' => '#faf0e6',
+      'magenta' => '#ff00ff',
+      'maroon' => '#800000',
+      'mediumaquamarine' => '#66cdaa',
+      'mediumblue' => '#0000cd',
+      'mediumorchid' => '#ba55d3',
+      'mediumpurple' => '#9370db',
+      'mediumseagreen' => '#3cb371',
+      'mediumslateblue' => '#7b68ee',
+      'mediumspringgreen' => '#00fa9a',
+      'mediumturquoise' => '#48d1cc',
+      'mediumvioletred' => '#c71585',
+      'midnightblue' => '#191970',
+      'mintcream' => '#f5fffa',
+      'mistyrose' => '#ffe4e1',
+      'moccasin' => '#ffe4b5',
+      'navajowhite' => '#ffdead',
+      'navy' => '#000080',
+      'oldlace' => '#fdf5e6',
+      'olive' => '#808000',
+      'olivedrab' => '#6b8e23',
+      'orange' => '#ffa500',
+      'orangered' => '#ff4500',
+      'orchid' => '#da70d6',
+      'palegoldenrod' => '#eee8aa',
+      'palegreen' => '#98fb98',
+      'paleturquoise' => '#afeeee',
+      'palevioletred' => '#db7093',
+      'papayawhip' => '#ffefd5',
+      'peachpuff' => '#ffdab9',
+      'peru' => '#cd853f',
+      'pink' => '#ffc0cb',
+      'plum' => '#dda0dd',
+      'powderblue' => '#b0e0e6',
+      'purple' => '#800080',
+      'rebeccapurple' => '#663399',
+      'red' => '#ff0000',
+      'rosybrown' => '#bc8f8f',
+      'royalblue' => '#4169e1',
+      'saddlebrown' => '#8b4513',
+      'salmon' => '#fa8072',
+      'sandybrown' => '#f4a460',
+      'seagreen' => '#2e8b57',
+      'seashell' => '#fff5ee',
+      'sienna' => '#a0522d',
+      'silver' => '#c0c0c0',
+      'skyblue' => '#87ceeb',
+      'slateblue' => '#6a5acd',
+      'slategray' => '#708090',
+      'slategrey' => '#708090',
+      'snow' => '#fffafa',
+      'springgreen' => '#00ff7f',
+      'steelblue' => '#4682b4',
+      'tan' => '#d2b48c',
+      'teal' => '#008080',
+      'thistle' => '#d8bfd8',
+      'tomato' => '#ff6347',
+      'turquoise' => '#40e0d0',
+      'violet' => '#ee82ee',
+      'wheat' => '#f5deb3',
+      'white' => '#ffffff',
+      'whitesmoke' => '#f5f5f5',
+      'yellow' => '#ffff00',
+      'yellowgreen' => '#9acd32'
     ];
 
     // Parse alpha from '#fff|.5' and 'white|.5'
-    if(is_string($color) && strstr($color, '|')) {
+    if (is_string($color) && strstr($color, '|')) {
       $color = explode('|', $color);
       $alpha = (float) $color[1];
       $color = trim($color[0]);
@@ -1791,28 +1965,28 @@ class SimpleImage {
     }
 
     // Translate CSS color names to hex values
-    if(is_string($color) && array_key_exists(strtolower($color), $cssColors)) {
+    if (is_string($color) && array_key_exists(strtolower($color), $cssColors)) {
       $color = $cssColors[strtolower($color)];
     }
 
     // Translate transparent keyword to a transparent color
-    if($color === 'transparent') {
+    if ($color === 'transparent') {
       $color = ['red' => 0, 'green' => 0, 'blue' => 0, 'alpha' => 0];
     }
 
     // Convert hex values to RGBA
-    if(is_string($color)) {
+    if (is_string($color)) {
       // Remove #
       $hex = preg_replace('/^#/', '', $color);
 
       // Support short and standard hex codes
-      if(strlen($hex) === 3) {
+      if (strlen($hex) === 3) {
         list($red, $green, $blue) = [
           $hex[0] . $hex[0],
           $hex[1] . $hex[1],
           $hex[2] . $hex[2]
         ];
-      } elseif(strlen($hex) === 6) {
+      } elseif (strlen($hex) === 6) {
         list($red, $green, $blue) = [
           $hex[0] . $hex[1],
           $hex[2] . $hex[3],
@@ -1832,7 +2006,7 @@ class SimpleImage {
     }
 
     // Enforce color value ranges
-    if(is_array($color)) {
+    if (is_array($color)) {
       // RGB default to 0
       $color['red'] = isset($color['red']) ? $color['red'] : 0;
       $color['green'] = isset($color['green']) ? $color['green'] : 0;
@@ -1851,5 +2025,4 @@ class SimpleImage {
 
     throw new \Exception("Invalid color value: $color", self::ERR_INVALID_COLOR);
   }
-
 }
