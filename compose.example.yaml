@@ -6,7 +6,8 @@ services:
     ports:
       - 8080:8080
     volumes:
-      - ./httpd.conf:/opt/bitnami/apache/conf/httpd.conf
+      - ./000-default.conf:/etc/apache2/sites-enabled/000-default.conf
+      - ./apache2.conf:/etc/apache2/apache2.conf
     environment:
       DB_HOST: "localhost"
       DB_USER: radius
